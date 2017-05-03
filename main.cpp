@@ -29,30 +29,37 @@ class node
 	node * parent;
 	data data_;
 
-	std::vector<std::string> var_mass;
-    void diff_process(node curr_node);
-    void diff_const();
-    void diff_1degree();
-    void diff_plus_minus();
-    void diff_multipl();
-    void diff_cos();
-    void diff_sin();
-    void get_var();
-
     explicit node(data word):
         left(),
         right(),
         parent(),
-        data_(word),
-        var_mass()
+        data_(word)
         {}
 
     explicit node():
         data_(),
         left(),
         right(),
-        parent(),
-        var_mass()
+        parent()
+        {}
+};
+
+class diff
+{
+    public:
+    std::string var;
+    node * curr_node;
+    void diff_process();
+    void diff_const();
+    void diff_first_degree();
+    void diff_plus_minus();
+    void diff_multipl();
+    void diff_division();
+    void diff_cos();
+    void diff_sin();
+    void get_var();
+    diff():
+        var()
         {}
 };
 
@@ -153,54 +160,143 @@ bool is_number(const char * str_num)
         return false;
 }
 
-void node::diff_process(node * curr_node)
+void diff::diff_process()
 {
-    //printf("%s\n", curr_node.data_.c_str());
+    //printf("%s\n", curr_node->data_.c_str());
     if ((curr_node->data_ == "+") || (curr_node->data_ == "-"))
-        diff_plus_minus(*curr_node);
+        diff_plus_minus();
     if (is_number(curr_node->data_.c_str()))
-        diff_const(*curr_node);
+        diff_const();
+    if (curr_node->data_ == "*")
+        diff_multipl();
+    if (curr_node->data_ == "/")
+        diff_division();
 }
 
-void node::get_var()
+void diff::get_var()
 {
     printf("Enter variables\n");
-    int eof = -1;
+    char var_temp[100];
+    scanf("%s", var_temp);
+    var = var_temp;
+    /*int eof = -1;
     while (eof)
     {
         char var[100];
         eof = ~scanf("%s", var);
         if (eof)
             var_mass.push_back(var);
-    }
+    }*/
 }
 
-/*void node::diff_const(node corr_node)
+void diff::diff_const()
 {
     //printf("!");
-    curr_node.data_.clear();
-    curr_node.data_.push_back('0');
-}*/
+    curr_node->data_.clear();
+    curr_node->data_.push_back('0');
+}
 
-/*void node::diff_plus_minus(node corr_node)
+void diff::diff_first_degree()
 {
-    if ((curr_node.left != NULL) && (curr_node.right != NULL))
+
+}
+
+void diff::diff_plus_minus()
+{
+    if ((curr_node->left != NULL) && (curr_node->right != NULL))
     {
-        diff_process(*curr_node.left);
-        diff_process(*curr_node.right);
+        curr_node->left->parent = curr_node;
+        curr_node = curr_node->left;
+        diff_process();
+        curr_node = curr_node->parent;
+        curr_node->right->parent = curr_node;
+        curr_node = curr_node->right;
+        diff_process();
+        curr_node = curr_node->parent;
     }
     else
         printf("You need numbers to add or sobstrakt\n");
-}*/
+}
+
+void diff::diff_multipl()
+{
+    node * copy = curr_node;
+    node * mult1 = new node();
+    node * mult2 = new node();
+    node * left_f = new node();
+    node * right_f = new node();
+    mult1->data_ = "*";
+    mult2->data_ = "*";
+    curr_node->data_ = "+";
+    curr_node->left->parent = mult1;
+    curr_node->right->parent = mult2;
+    mult1->left = curr_node->left;
+    mult1->right = right_f;
+    mult2->left = curr_node->right;
+    mult2->right = left_f;
+    (*mult1->right) = (*curr_node->right);
+    (*mult2->right) = (*curr_node->left);
+    mult1->parent = curr_node;
+    mult2->parent = curr_node;
+    curr_node->left = mult1;
+    curr_node->right = mult2;
+    curr_node = mult1->right;
+    diff_process();
+    curr_node = mult2->right;
+    diff_process();
+    curr_node = copy;
+}
+
+void diff::diff_division()
+{
+    node * copy = curr_node;
+    node * cap = new node();
+    node * cap_left = new node();
+    node * cap_right = new node();
+    node * mult1_left = new node();
+    node * mult2_left = new node();
+    cap->left = cap_left;
+    cap->right = cap_right;
+    (*cap->left) = (*curr_node->right);
+    cap->data_ = "^";
+    cap->right->data_ = "2";
+    node * minus = new node();
+    minus->data_ = "-";
+    node * mult1 = new node();
+    node * mult2 = new node();
+    mult1->data_ = "*";
+    mult2->data_ = "*";
+    minus->left = mult1;
+    minus->right = mult2;
+    mult1->parent = minus;
+    mult2->parent = minus;
+    mult1->left = mult1_left;
+    mult2->left = mult2_left;
+    (*mult1->left) = (*curr_node->right);
+    (*mult2->left) = (*curr_node->left);
+    mult1->right = curr_node->left;
+    mult2->right = curr_node->right;
+    curr_node->left = minus;
+    minus->parent = curr_node;
+    curr_node->right = cap;
+    cap->parent = curr_node;
+    curr_node = mult1->right;
+    diff_process();
+    curr_node = mult2->right;
+    diff_process();
+    curr_node = copy;
+}
 
 int main()
 {
     FILE * f = fopen("differ.txt","r");
     node q;
+    diff w;
     q.create_tree(f);
-    q.get_var();
-    //q.diff_process();
-    //q.print();
+    w.curr_node = &q;
+    w.get_var();
+    w.diff_process();
+    w.curr_node->print();
 
     getch();
     return 0;
